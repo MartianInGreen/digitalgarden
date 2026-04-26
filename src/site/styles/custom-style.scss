@@ -40,6 +40,13 @@ body {
         gap: 1em;
         align-items: flex-start;
         padding: 0;
+
+        // Default column behavior when using plain markdown children
+        // (e.g. paragraph + image/SVG) instead of nested [!col-md-*] callouts.
+        > * {
+            flex: 1 1 0;
+            min-width: 0;
+        }
     }
 }
 
