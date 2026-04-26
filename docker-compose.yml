@@ -1,0 +1,9 @@
+services:
+  digitalgarden:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: digitalgarden
+    restart: unless-stopped
+    ports:
+      - "8085:80"
