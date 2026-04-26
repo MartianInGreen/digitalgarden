@@ -11,3 +11,61 @@ body {
     //   color: black;
     //  }
 }
+
+/* obsidian-columns: codeblock syntax */
+.column-list {
+    display: flex;
+    flex-direction: row;
+    gap: 1em;
+    align-items: flex-start;
+
+    > .column {
+        flex: 1 1 0;
+        min-width: 0;
+        overflow: hidden;
+    }
+}
+
+/* obsidian-columns: callout syntax (> [!col] / > [!col-md]) */
+.callout[data-callout="col"] {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+
+    > .callout-title { display: none; }
+
+    > .callout-content {
+        display: flex;
+        flex-direction: row;
+        gap: 1em;
+        align-items: flex-start;
+        padding: 0;
+    }
+}
+
+.callout[data-callout^="col-md"] {
+    flex: 1 1 0;
+    min-width: 0;
+    background-color: transparent;
+    border: none;
+    padding: 0;
+
+    > .callout-title { display: none; }
+    > .callout-content { padding: 0; }
+}
+
+@for $i from 1 through 10 {
+    .callout[data-callout="col-md-#{$i}"] { flex-grow: $i; }
+}
+
+@media (max-width: 768px) {
+    .column-list,
+    .callout[data-callout="col"] > .callout-content {
+        flex-direction: column;
+
+        > .column,
+        > .callout[data-callout^="col-md"] {
+            width: 100%;
+        }
+    }
+}

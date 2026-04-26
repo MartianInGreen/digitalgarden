@@ -246,6 +246,30 @@ module.exports = function(eleventyConfig) {
           return res
         }
 
+        if (token.info === "col" || token.info.startsWith("col ")) {
+          const colMdRegex = /^(`{3,})col-md([^\n]*)\n([\s\S]*?)^\1[ \t]*$/gm;
+          const cols = [];
+          let match;
+          while ((match = colMdRegex.exec(token.content)) !== null) {
+            let colContent = match[3];
+            let flexGrow = 1;
+            const settingsSplit = colContent.match(/^([\s\S]*?)\n===\n([\s\S]*)$/);
+            if (settingsSplit) {
+              const fgMatch = settingsSplit[1].match(/^flexGrow\s*=\s*(\d+(?:\.\d+)?)/m);
+              if (fgMatch) flexGrow = parseFloat(fgMatch[1]);
+              colContent = settingsSplit[2];
+            }
+            cols.push({ content: colContent, flexGrow });
+          }
+          if (cols.length === 0) return origFenceRule(tokens, idx, options, env, slf);
+          let html = '<div class="column-list">';
+          for (const col of cols) {
+            html += `<div class="column" style="flex-grow: ${col.flexGrow}">${md.render(col.content)}</div>`;
+          }
+          html += '</div>';
+          return html;
+        }
+
         // Other languages
         return origFenceRule(tokens, idx, options, env, slf);
       };
@@ -487,6 +511,23 @@ module.exports = function(eleventyConfig) {
         content = "";
       }
       let contentDiv = content ? `\n<div class="callout-content">${content}</div>` : "";
+
+      const calloutTypeLower = calloutType.toLowerCase();
+      if (calloutTypeLower === "col") {
+        blockquote.tagName = "div";
+        blockquote.setAttribute("class", "column-list");
+        blockquote.innerHTML = content.replace(/<p>\s*<\/p>/g, "").trim();
+        continue;
+      }
+      if (calloutTypeLower.match(/^col-md(-\d+(?:\.\d+)?)?$/)) {
+        const sizeMatch = calloutTypeLower.match(/^col-md-(\d+(?:\.\d+)?)$/);
+        const flexGrow = sizeMatch ? parseFloat(sizeMatch[1]) : 1;
+        blockquote.tagName = "div";
+        blockquote.setAttribute("class", "column");
+        blockquote.setAttribute("style", `flex-grow: ${flexGrow}`);
+        blockquote.innerHTML = content.replace(/<p>\s*<\/p>/g, "").trim();
+        continue;
+      }
 
       blockquote.tagName = "div";
       blockquote.classList.add("callout");
