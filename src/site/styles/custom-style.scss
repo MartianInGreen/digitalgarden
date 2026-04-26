@@ -1,16 +1,7 @@
-body {
-    /***
-      ADD YOUR CUSTOM STYLING HERE. (INSIDE THE body {...} section.)
-      IT WILL TAKE PRECEDENCE OVER THE STYLING IN THE STYLE.CSS FILE.
-   ***/
-    //  background-color: white;
-    //  .content {
-    //   font-size: 14px;
-    //  }
-    //  h1 {
-    //   color: black;
-    //  }
-}
+/***
+  ADD YOUR CUSTOM STYLING HERE.
+  IT WILL TAKE PRECEDENCE OVER THE STYLING IN THE STYLE.CSS FILE.
+***/
 
 /* obsidian-columns: codeblock syntax */
 .column-list {
@@ -23,6 +14,10 @@ body {
         flex: 1 1 0;
         min-width: 0;
         overflow: hidden;
+    }
+
+    > .column > p {
+        margin-top: 0;
     }
 }
 
@@ -46,6 +41,21 @@ body {
         > * {
             flex: 1 1 0;
             min-width: 0;
+        }
+
+        // Plugin output uses <div class="column"><p>...</p></div>
+        > .column > p {
+            margin-top: 0;
+        }
+
+        // Normalize inline SVG dimensions from markdown HTML attributes.
+        > .column svg,
+        > svg {
+            display: block;
+            width: 100%;
+            max-width: 240px;
+            height: auto;
+            margin: 0 auto;
         }
     }
 }
