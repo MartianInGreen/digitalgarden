@@ -516,7 +516,23 @@ module.exports = function(eleventyConfig) {
       if (calloutTypeLower === "col") {
         blockquote.tagName = "div";
         blockquote.setAttribute("class", "column-list");
-        blockquote.innerHTML = content.replace(/<p>\s*<\/p>/g, "").trim();
+        // Remove leading <br> that markdown-it emits when [!col] shares a line with content
+        const cleaned = content
+          .replace(/(<p[^>]*>)\s*(?:<br\s*\/?>\s*)+/gi, "$1")
+          .trim();
+        if (cleaned.includes('class="column"')) {
+          // Nested [!col-md] blocks already processed — just wrap as-is
+          blockquote.innerHTML = cleaned.replace(/<p>\s*<\/p>/gi, "");
+        } else {
+          // Each top-level block element becomes a column
+          const blocks = cleaned
+            .split(/(?=<(?:p|div|h[1-6]|ul|ol|pre|blockquote|table|figure)[\s>])/i)
+            .map(s => s.trim())
+            .filter(s => s && !/^<p>\s*<\/p>$/i.test(s));
+          blockquote.innerHTML = blocks.length > 1
+            ? blocks.map(b => `<div class="column">${b}</div>`).join("")
+            : cleaned.replace(/<p>\s*<\/p>/gi, "");
+        }
         continue;
       }
       if (calloutTypeLower.match(/^col-md(-\d+(?:\.\d+)?)?$/)) {
