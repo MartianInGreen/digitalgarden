@@ -113,6 +113,37 @@ const tagRegex = /(^|\s|\>)(#[^\s!@#$%^&*()=+\.,\[{\]};:'"?><]+)(?!([^<]*>))/g;
 const markdownFileTypeRegex = /\.(md|markdown)$/i;
 const isMarkdownPage = (inputPath) => inputPath && inputPath.match(markdownFileTypeRegex);
 
+function normalizeSvgDimensions(root) {
+  for (const svg of root.querySelectorAll("svg")) {
+    const viewBox = svg.getAttribute("viewBox");
+    if (!viewBox) continue;
+
+    const [, , viewBoxWidth, viewBoxHeight] = viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
+    if (!viewBoxWidth || !viewBoxHeight) continue;
+
+    const parseLength = (value) => {
+      const match = String(value || "").trim().match(/^(\d+(?:\.\d+)?)(?:px)?$/);
+      return match ? Number(match[1]) : null;
+    };
+    const formatLength = (value) => `${Math.round(value * 1000) / 1000}`;
+
+    const width = parseLength(svg.getAttribute("width"));
+    if (width !== null) {
+      svg.setAttribute("height", formatLength(width * (viewBoxHeight / viewBoxWidth)));
+    }
+  }
+}
+
+function normalizeSvgDimensionsInHtml(html) {
+  const parsed = parse(`<div>${html}</div>`);
+  const wrapper = parsed.querySelector("div") || parsed;
+  normalizeSvgDimensions(wrapper);
+  return wrapper.innerHTML;
+}
+
 module.exports = function(eleventyConfig) {
   eleventyConfig.setLiquidOptions({
     dynamicPartials: true,
@@ -267,7 +298,7 @@ module.exports = function(eleventyConfig) {
             html += `<div class="column" style="flex-grow: ${col.flexGrow}">${md.render(col.content)}</div>`;
           }
           html += '</div>';
-          return html;
+          return normalizeSvgDimensionsInHtml(html);
         }
 
         // Other languages
@@ -535,6 +566,7 @@ module.exports = function(eleventyConfig) {
             ? children.map(el => `<div class="column">${el.outerHTML}</div>`).join("")
             : cleaned.replace(/<p>\s*<\/p>/gi, "");
         }
+        normalizeSvgDimensions(blockquote);
         continue;
       }
       if (calloutTypeLower.match(/^col-md(-\d+(?:\.\d+)?)?$/)) {
@@ -544,6 +576,7 @@ module.exports = function(eleventyConfig) {
         blockquote.setAttribute("class", "column");
         blockquote.setAttribute("style", `flex-grow: ${flexGrow}`);
         blockquote.innerHTML = content.replace(/<p>\s*<\/p>/g, "").trim();
+        normalizeSvgDimensions(blockquote);
         continue;
       }
 
