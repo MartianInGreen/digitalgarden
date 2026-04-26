@@ -524,13 +524,15 @@ module.exports = function(eleventyConfig) {
           // Nested [!col-md] blocks already processed — just wrap as-is
           blockquote.innerHTML = cleaned.replace(/<p>\s*<\/p>/gi, "");
         } else {
-          // Each top-level block element becomes a column
-          const blocks = cleaned
-            .split(/(?=<(?:p|div|h[1-6]|ul|ol|pre|blockquote|table|figure)[\s>])/i)
-            .map(s => s.trim())
-            .filter(s => s && !/^<p>\s*<\/p>$/i.test(s));
-          blockquote.innerHTML = blocks.length > 1
-            ? blocks.map(b => `<div class="column">${b}</div>`).join("")
+          // Use the DOM parser to split on direct child elements (handles <p>,
+          // raw <svg>, <img>, <div>, etc. — anything markdown-it may emit)
+          const tempRoot = parse(`<div>${cleaned}</div>`);
+          const wrapper = tempRoot.querySelector("div") || tempRoot;
+          const children = wrapper.childNodes
+            .filter(n => n.nodeType === 1)
+            .filter(n => !/^<p>\s*<\/p>$/i.test((n.outerHTML || "").trim()));
+          blockquote.innerHTML = children.length > 1
+            ? children.map(el => `<div class="column">${el.outerHTML}</div>`).join("")
             : cleaned.replace(/<p>\s*<\/p>/gi, "");
         }
         continue;
