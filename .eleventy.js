@@ -246,6 +246,30 @@ module.exports = function(eleventyConfig) {
           return res
         }
 
+        if (token.info === "col" || token.info.startsWith("col ")) {
+          const colMdRegex = /^(`{3,})col-md([^\n]*)\n([\s\S]*?)^\1[ \t]*$/gm;
+          const cols = [];
+          let match;
+          while ((match = colMdRegex.exec(token.content)) !== null) {
+            let colContent = match[3];
+            let flexGrow = 1;
+            const settingsSplit = colContent.match(/^([\s\S]*?)\n===\n([\s\S]*)$/);
+            if (settingsSplit) {
+              const fgMatch = settingsSplit[1].match(/^flexGrow\s*=\s*(\d+(?:\.\d+)?)/m);
+              if (fgMatch) flexGrow = parseFloat(fgMatch[1]);
+              colContent = settingsSplit[2];
+            }
+            cols.push({ content: colContent, flexGrow });
+          }
+          if (cols.length === 0) return origFenceRule(tokens, idx, options, env, slf);
+          let html = '<div class="column-list">';
+          for (const col of cols) {
+            html += `<div class="column" style="flex-grow: ${col.flexGrow}">${md.render(col.content)}</div>`;
+          }
+          html += '</div>';
+          return html;
+        }
+
         // Other languages
         return origFenceRule(tokens, idx, options, env, slf);
       };
@@ -487,6 +511,39 @@ module.exports = function(eleventyConfig) {
         content = "";
       }
       let contentDiv = content ? `\n<div class="callout-content">${content}</div>` : "";
+
+      const calloutTypeLower = calloutType.toLowerCase();
+      if (calloutTypeLower === "col") {
+        blockquote.tagName = "div";
+        blockquote.setAttribute("class", "column-list");
+        // Remove leading <br> that markdown-it emits when [!col] shares a line with content
+        const cleaned = content
+          .replace(/(<p[^>]*>)\s*(?:<br\s*\/?>\s*)+/gi, "$1")
+          .trim();
+        if (cleaned.includes('class="column"')) {
+          // Nested [!col-md] blocks already processed — just wrap as-is
+          blockquote.innerHTML = cleaned.replace(/<p>\s*<\/p>/gi, "");
+        } else {
+          // Each top-level block element becomes a column
+          const blocks = cleaned
+            .split(/(?=<(?:p|div|h[1-6]|ul|ol|pre|blockquote|table|figure)[\s>])/i)
+            .map(s => s.trim())
+            .filter(s => s && !/^<p>\s*<\/p>$/i.test(s));
+          blockquote.innerHTML = blocks.length > 1
+            ? blocks.map(b => `<div class="column">${b}</div>`).join("")
+            : cleaned.replace(/<p>\s*<\/p>/gi, "");
+        }
+        continue;
+      }
+      if (calloutTypeLower.match(/^col-md(-\d+(?:\.\d+)?)?$/)) {
+        const sizeMatch = calloutTypeLower.match(/^col-md-(\d+(?:\.\d+)?)$/);
+        const flexGrow = sizeMatch ? parseFloat(sizeMatch[1]) : 1;
+        blockquote.tagName = "div";
+        blockquote.setAttribute("class", "column");
+        blockquote.setAttribute("style", `flex-grow: ${flexGrow}`);
+        blockquote.innerHTML = content.replace(/<p>\s*<\/p>/g, "").trim();
+        continue;
+      }
 
       blockquote.tagName = "div";
       blockquote.classList.add("callout");
